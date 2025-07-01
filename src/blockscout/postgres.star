@@ -166,7 +166,6 @@ def run(
         min_memory=min_memory,
         max_memory=max_memory,
         node_selectors=node_selectors,
-        tolerations=tolerations,
     )
 
 
