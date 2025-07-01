@@ -1,6 +1,7 @@
 shared_utils = import_module("../shared_utils/shared_utils.star")
 constants = import_module("../package_io/constants.star")
 postgres = import_module("./postgres.star")
+input_parser = import_module("../package_io/input_parser.star")
 
 POSTGRES_IMAGE = "library/postgres:alpine"
 
@@ -49,12 +50,16 @@ def launch_blockscout(
     el_contexts,
     persistent,
     global_node_selectors,
+    global_tolerations,
     port_publisher,
     additional_service_index,
     docker_cache_params,
     blockscout_params,
     network_params,
 ):
+
+    # parse into the specific tolerations struct
+    tolerations=input_parser.get_client_tolerations([],[],global_tolerations)
     postgres_output = postgres.run(
         plan,
         service_name="{}-postgres".format(SERVICE_NAME_BLOCKSCOUT),
@@ -62,6 +67,7 @@ def launch_blockscout(
         extra_configs=["max_connections=1000"],
         persistent=persistent,
         node_selectors=global_node_selectors,
+        tolerations=tolerations,
         image=shared_utils.docker_cache_image_calc(docker_cache_params, POSTGRES_IMAGE),
     )
 
@@ -73,6 +79,7 @@ def launch_blockscout(
 
     config_verif = get_config_verif(
         global_node_selectors,
+        tolerations,
         port_publisher,
         additional_service_index,
         docker_cache_params,
@@ -90,6 +97,7 @@ def launch_blockscout(
         verif_url,
         el_client_name,
         global_node_selectors,
+        tolerations,
         port_publisher,
         additional_service_index,
         docker_cache_params,
@@ -109,6 +117,7 @@ def launch_blockscout(
         blockscout_params,
         network_params,
         global_node_selectors,
+        tolerations,
         blockscout_service,
     )
     plan.add_service(SERVICE_NAME_FRONTEND, config_frontend)
@@ -117,6 +126,7 @@ def launch_blockscout(
 
 def get_config_verif(
     node_selectors,
+    tolerations,
     port_publisher,
     additional_service_index,
     docker_cache_params,
@@ -146,6 +156,7 @@ def get_config_verif(
         min_memory=BLOCKSCOUT_VERIF_MIN_MEMORY,
         max_memory=BLOCKSCOUT_VERIF_MAX_MEMORY,
         node_selectors=node_selectors,
+        tolerations=tolerations,
     )
 
 
@@ -155,6 +166,7 @@ def get_config_backend(
     verif_url,
     el_client_name,
     node_selectors,
+    tolerations,
     port_publisher,
     additional_service_index,
     docker_cache_params,
@@ -176,6 +188,7 @@ def get_config_backend(
         1,
     )
 
+    # TODO: kubernetes node toleration not passed in all blockscout related services!
     return ServiceConfig(
         image=shared_utils.docker_cache_image_calc(
             docker_cache_params,
@@ -212,6 +225,7 @@ def get_config_backend(
         min_memory=BLOCKSCOUT_MIN_MEMORY,
         max_memory=BLOCKSCOUT_MAX_MEMORY,
         node_selectors=node_selectors,
+        tolerations=tolerations,
     )
 
 
@@ -222,6 +236,7 @@ def get_config_frontend(
     blockscout_params,
     network_params,
     node_selectors,
+    tolerations,
     blockscout_service,
 ):
     return ServiceConfig(
@@ -260,4 +275,5 @@ def get_config_frontend(
         min_memory=BLOCKSCOUT_MIN_MEMORY,
         max_memory=BLOCKSCOUT_MAX_MEMORY,
         node_selectors=node_selectors,
+        tolerations=tolerations,
     )
